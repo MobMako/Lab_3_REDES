@@ -1,0 +1,282 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[left=2.5cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{listings}
+
+% Configuración del encabezado y pie de página
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Laboratorio 3 -- Sockets y Transporte}
+\lhead{Grupo 2}
+\cfoot{\thepage}
+
+% Configuración de hipervínculos
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\begin{document}
+
+% ==============================================================================
+% PORTADA
+% ==============================================================================
+\begin{titlepage}
+    \begin{center}
+    
+    \vspace*{0.5cm}
+    
+    {\Large\textbf{UNIVERSIDAD DE LOS ANDES}}\\[0.2cm]
+    {\large\textbf{DEPARTAMENTO DE INGENIERÍA DE SISTEMAS Y COMPUTACIÓN}}\\[0.2cm]
+    {\normalsize\textbf{ISIS2311L -- REDES Y COMUNICACIONES}}
+    
+    \vfill
+    
+    {\Large\textbf{LABORATORIO 3}}\\[0.8cm]
+    {\LARGE\textbf{SOCKETS Y CAPA DE TRANSPORTE}}\\[0.4cm]
+    {\large\textbf{Informe de Actividades y Preguntas de Análisis}}
+    
+    \vspace{1.5cm}
+    
+    {\large\textbf{GRUPO 2:}}\\[0.5cm]
+    {\large
+    Luisa María Mora Pérez -- 202410437\\
+    Juan Ángel Aicardy Pacheco -- 202415378
+    }
+    
+    \vfill
+    
+    {\large\textbf{2026-02}}
+    
+    \end{center}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ==============================================================================
+% ACTIVIDAD 1 Y 2: IMPLEMENTACIÓN Y DOCUMENTACIÓN DE SOCKETS
+% ==============================================================================
+\section{Implementación del Sistema y Documentación de Sockets (Actividades 1 y 2)}
+
+El sistema publicador--suscriptor para noticias deportivas en tiempo real se implementó en lenguaje C estándar sin librerías externas de abstracción de red. En cumplimiento del requerimiento, a continuación se documenta de manera detallada y punto a punto la interacción del programa con cada una de las funciones de la API estándar de sockets de Berkeley/POSIX (\texttt{sys/socket.h}, \texttt{netinet/in.h}, \texttt{arpa/inet.h}):
+
+\begin{enumerate}
+    \item \textbf{\texttt{socket(int domain, int type, int protocol)}:}
+    \begin{itemize}
+        \item \textbf{Propósito:} Solicita al kernel del sistema operativo la creación de un nuevo descriptor de archivo para comunicación de red.
+        \item \textbf{En UDP:} Se invoca como \texttt{socket(AF\_INET, SOCK\_DGRAM, 0)}. El parámetro \texttt{AF\_INET} fija el dominio a IPv4 y \texttt{SOCK\_DGRAM} configura el socket como no orientado a conexión basado en datagramas.
+        \item \textbf{En TCP:} Se invoca como \texttt{socket(AF\_INET, SOCK\_STREAM, 0)}. \texttt{SOCK\_STREAM} configura un canal bidireccional fiable orientado a flujo de bytes continuo.
+    \end{itemize}
+
+    \item \textbf{\texttt{bind(int sockfd, const struct sockaddr *addr, socklen\_t addrlen)}:}
+    \begin{itemize}
+        \item \textbf{Propósito:} Asocia el descriptor de socket con una tupla local fija (dirección IP y puerto).
+        \item \textbf{Uso en el Broker:} Se emplea tanto en el Broker UDP como en el Broker TCP para fijar la escucha en el puerto \texttt{8080} y en la constante \texttt{INADDR\_ANY} (todas las interfaces de red del equipo). Requiere el llenado previo de la estructura \texttt{struct sockaddr\_in} y el cast genérico a \texttt{struct sockaddr*}.
+    \end{itemize}
+
+    \item \textbf{\texttt{listen(int sockfd, int backlog)} (Exclusivo TCP):}
+    \begin{itemize}
+        \item \textbf{Propósito:} Marca el socket pasivo del Broker TCP como receptor de solicitudes de conexión entrantes, especificando en \texttt{backlog} la longitud máxima de la cola de conexiones pendientes antes de ser aceptadas.
+    \end{itemize}
+
+    \item \textbf{\texttt{accept(int sockfd, struct sockaddr *addr, socklen\_t *addrlen)} (Exclusivo TCP):}
+    \begin{itemize}
+        \item \textbf{Propósito:} Extrae la primera solicitud de conexión de la cola del socket en escucha, completa el \textit{three-way handshake} y crea un \textbf{nuevo descriptor de socket dedicado} e independiente para la comunicación con ese cliente específico, preservando el socket original libre para aceptar nuevos clientes.
+    \end{itemize}
+
+    \item \textbf{\texttt{connect(int sockfd, const struct sockaddr *addr, socklen\_t addrlen)} (Exclusivo TCP):}
+    \begin{itemize}
+        \item \textbf{Propósito:} Utilizado por los publicadores y suscriptores TCP para iniciar activamente el establecimiento de conexión hacia la dirección y puerto del Broker (\texttt{127.0.0.1:8080}), enviando el paquete inicial \texttt{SYN}.
+    \end{itemize}
+
+    \item \textbf{\texttt{sendto()} y \texttt{recvfrom()} (Exclusivos UDP):}
+    \begin{itemize}
+        \item \textbf{\texttt{sendto()}:} Envía un datagrama autónomo especificando directamente la dirección y puerto de destino en cada llamada sin necesidad de conexión previa. Utilizado por los publicadores para enviar noticias al Broker y por el Broker para retransmitirlas a los suscriptores.
+        \item \textbf{\texttt{recvfrom()}:} Función bloqueante que recibe el siguiente datagrama que arribe al socket y almacena automáticamente en una estructura \texttt{sockaddr\_in} la dirección IP y puerto efímero del nodo que emitió el paquete, permitiendo al Broker UDP registrar nuevos suscriptores a partir de su mensaje \texttt{SUB:<tema>}.
+    \end{itemize}
+
+    \item \textbf{\texttt{send()} y \texttt{recv()} (Exclusivos TCP):}
+    \begin{itemize}
+        \item \textbf{Propósito:} Transmiten y reciben datos sobre un socket TCP previamente conectado. Dado que TCP es un flujo continuo de bytes (\textit{byte-stream}) sin delimitadores implícitos de mensaje, las aplicaciones delimitan cada noticia mediante un salto de línea (\verb|\n|) para prevenir que múltiples mensajes se concatenen en una única lectura.
+    \end{itemize}
+
+    \item \textbf{\texttt{htons()} y \texttt{inet\_pton()}:}
+    \begin{itemize}
+        \item \textbf{\texttt{htons()}:} (\textit{Host to Network Short}) Convierte el entero del puerto (8080) del orden de bytes de la máquina (\textit{Little-Endian} en procesadores x86) al formato estándar de red (\textit{Big-Endian}).
+        \item \textbf{\texttt{inet\_pton()}:} Convierte la cadena legible de la dirección IP (\texttt{"127.0.0.1"}) a su formato binario en la estructura de red.
+    \end{itemize}
+\end{enumerate}
+
+% ==============================================================================
+% ACTIVIDAD 3 Y 4: ENVÍO DE MENSAJES Y ARCHIVOS PCAP
+% ==============================================================================
+\section{Verificación de Envío de Mensajes y Capturas (Actividades 3 y 4)}
+
+\subsection{Verificación de Envío de Mensajes (Mínimo 10 por Publicador)}
+En las pruebas experimentales se ejecutaron simultáneamente 1 Broker, 2 Publicadores y 3 Suscriptores. Para verificar la recepción y el enrutamiento selectivo por temas, se emitieron exactamente 10 noticias desde cada publicador:
+
+\begin{itemize}
+    \item \textbf{Publicador 1 (Tópico \texttt{futbol}, Puerto efímero 36437):} Emitió 10 noticias consecutivas:
+    \textit{"gol"}, \textit{"de"}, \textit{"colombia"}, \textit{"de"}, \textit{"colombia"}, \textit{"decolooombiaa"}, \textit{"1-0"}, \textit{"falta"}, \textit{"era mano omeomeome"}, \textit{"sopa"}.
+    Se comprobó que las 10 noticias llegaron únicamente a los dos suscriptores del tema fútbol (puertos 36835 y 43043).
+    \item \textbf{Publicador 2 (Tópico \texttt{basket}, Puerto efímero 54648):} Emitió 10 noticias consecutivas:
+    \textit{"lowk"}, \textit{"no "}, \textit{"sen"}, \textit{"nada"}, \textit{"de"}, \textit{"basket"}, \textit{"entonces"}, \textit{"voy a decir"}, \textit{"1-0"}, \textit{"20-0"}.
+    Se comprobó que las 10 noticias llegaron únicamente al suscriptor del tema básquet (puerto 36980), sin fugas entre tópicos.
+\end{itemize}
+
+\subsection{Archivos de Captura Wireshark (.pcap)}
+El tráfico completo de ambas versiones fue registrado en la interfaz de red y almacenado en los dos archivos solicitados:
+\begin{enumerate}
+    \item \texttt{udp\_pubsub.pcap}: Contiene los 50 datagramas del intercambio UDP (registrado en la carpeta local \texttt{capturas/udp\_pubsub.pcap}).
+    \item \texttt{tcp\_pubsub.pcap}: Contiene el tráfico de establecimiento de conexión (handshake), transmisión y desconexión TCP.
+\end{enumerate}
+Ambos archivos de captura se encuentran disponibles para descarga en el siguiente enlace compartido:
+\begin{center}
+\textbf{Enlace OneDrive a Capturas:} \url{https://uniandes-my.sharepoint.com/:f:/r/personal/lm_morap1_uniandes_edu_co/Documents/Redes%20-%20Lab3%20-%20Grupo2}
+\end{center}
+
+\newpage
+% ==============================================================================
+% ACTIVIDAD 5: TABLA COMPARATIVA DE DESEMPEÑO
+% ==============================================================================
+\section{Tabla Comparativa de Desempeño: TCP vs. UDP (Actividad 5)}
+
+En la Tabla~\ref{tab:desempeno_tcp_udp} se compara el desempeño de ambos protocolos bajo los cuatro criterios especificados en la guía de laboratorio:
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|X|}
+        \hline
+        \textbf{Criterio} & \textbf{TCP (Transmission Control Protocol)} & \textbf{UDP (User Datagram Protocol)} \\ \hline
+        \textbf{Confiabilidad} & 
+        \textbf{Alta (Garantizada por diseño):} Utiliza acuses de recibo (\textit{ACKs}) y temporizadores de retransmisión (\textit{RTO}). Si un paquete se descarta en la red, el emisor lo retransmite automáticamente hasta confirmar su recepción. & 
+        \textbf{Nula (Mejor esfuerzo / \textit{Best Effort}):} No implementa mecanismos de acuse de recibo ni retransmisiones automáticas. Si un datagrama se pierde en un router congestionado, se pierde definitivamente a nivel de transporte. \\ \hline
+        \textbf{Orden de entrega} & 
+        \textbf{Garantizado:} Emplea números de secuencia de 32 bits. Si los segmentos llegan desordenados a la capa de red, el receptor los almacena en su buffer y los reordena antes de entregarlos en el orden exacto a la aplicación. & 
+        \textbf{No garantizado:} Cada datagrama es completamente independiente. Si toman rutas distintas o sufren retardos dispares, pueden arribar en un orden diferente al de emisión o llegar duplicados. \\ \hline
+        \textbf{Pérdida de mensajes} & 
+        \textbf{Transparente a la aplicación:} Las pérdidas son detectadas y resueltas internamente por el protocolo de transporte, asegurando que la aplicación reciba el flujo de datos completo y sin faltantes. & 
+        \textbf{Tolerada / Expuesta a la aplicación:} La capa de transporte no reporta pérdidas. Si la aplicación requiere que un mensaje no se pierda, debe implementar su propio protocolo de control en capa de aplicación. \\ \hline
+        \textbf{Overhead de cabeceras} & 
+        \textbf{Elevado (Mínimo 20 bytes por segmento):} Cabecera base de 20 bytes (hasta 60 bytes con opciones). Introduce además sobrecarga por paquetes puros de control: \textit{handshake} de 3 vías (SYN), paquetes de confirmación ACK y cierre FIN. & 
+        \textbf{Mínimo (8 bytes fijos por datagrama):} Cabecera sumamente ligera con únicamente 4 campos de 2 bytes: puerto origen, puerto destino, longitud y checksum. No genera ningún paquete previo ni posterior de control. \\ \hline
+    \end{tabularx}
+    \caption{Comparación de desempeño entre TCP y UDP según los criterios del laboratorio.}
+    \label{tab:desempeno_tcp_udp}
+\end{table}
+
+\newpage
+% ==============================================================================
+% ACTIVIDAD 6: PREGUNTAS DE ANÁLISIS OBJETIVO
+% ==============================================================================
+\section{Respuestas a las Preguntas de Análisis Objetivo (Actividad 6)}
+
+\subsection{1. ¿Qué ocurriría si en lugar de dos publicadores hubiera cien partidos simultáneos? ¿Cómo impactaría esto en el desempeño del broker bajo TCP y bajo UDP?}
+\begin{itemize}
+    \item \textbf{Bajo TCP:} El Broker se vería forzado a mantener abiertas y activas al menos 100 conexiones TCP dedicadas exclusivamente a los publicadores (además de las de los suscriptores). Cada conexión consume descriptores de archivo en el sistema operativo y memoria del kernel para sus buffers de transmisión y recepción (\texttt{SO\_RCVBUF} y \texttt{SO\_SNDBUF}, típicamente entre 64 y 128 KB por socket). Además, el Broker requiere esquemas de multiplexación I/O (\texttt{select}, \texttt{poll} o hilos) con un elevado coste en cambios de contexto e inspección de descriptores, limitando drásticamente la capacidad de escala vertical del proceso.
+    \item \textbf{Bajo UDP:} El impacto en descriptores y memoria es insignificante: el Broker continúa atendiendo a los 100 publicadores a través del \textbf{mismo y único socket} en el puerto 8080. No se requiere mantener estructuras de estado por conexión. El único factor crítico es la tasa agregada de datagramas: si la frecuencia de noticias de los 100 partidos satura la velocidad a la que el bucle \texttt{recvfrom()} extrae datos, el buffer de entrada del socket se desbordará y los paquetes comenzarán a descartarse silenciosamente.
+\end{itemize}
+
+\subsection{2. Si un gol se envía como mensaje desde el publicador y un suscriptor no lo recibe en UDP, ¿qué implicaciones tendría para la aplicación real? ¿Por qué TCP maneja mejor este escenario?}
+\begin{itemize}
+    \item \textbf{Implicaciones en la aplicación real:} Se produce una inconsistencia de estado crítica e irreversible. El hincha queda desactualizado respecto a la realidad del partido: no se entera del gol, el marcador que visualiza en su interfaz es incorrecto y las noticias posteriores carecerán de sentido cronológico (por ejemplo, leer comentarios sobre un penalti anotado sin haberse enterado de que ocurrió un gol).
+    \item \textbf{Por qué TCP maneja mejor este escenario:} TCP asocia a cada byte transmitido un número de secuencia continuo. Cuando el receptor recibe el segmento, retorna obligatoriamente un acuse de recibo (\texttt{ACK}). Si el paquete del gol se pierde o se corrompe en el tránsito, el receptor no genera el ACK y el emisor (Broker), al vencer el temporizador de retransmisión (\textit{RTO}), reenvía automáticamente el segmento sin intervención del usuario ni de la aplicación.
+\end{itemize}
+
+\subsection{3. En un escenario de seguimiento en vivo de partidos, ¿qué protocolo (TCP o UDP) resultaría más adecuado? Justifique con base en los resultados de la práctica.}
+La idoneidad depende de la naturaleza del dato en el seguimiento en vivo:
+\begin{itemize}
+    \item Para \textbf{eventos textuales, alertas de incidencias y cambios de marcador} (el caso de esta práctica): \textbf{TCP es más adecuado}. Al ser eventos discretos e infrecuentes (un gol ocurre pocas veces por partido), la sobrecarga adicional de TCP es despreciable para la red, mientras que la confiabilidad y el orden son indispensables: un marcador deportivo no puede tolerar la pérdida de un gol.
+    \item Para \textbf{streaming de video/audio en vivo o telemetría continua de jugadores}: \textbf{UDP es más adecuado}. En este flujo masivo de datos, la pérdida ocasional de un fotograma no arruina la transmisión, mientras que el retardo acumulativo que provocaría la retransmisión de TCP causaría congelamiento de imagen y retraso progresivo con respecto al vivo (\textit{Head-of-Line Blocking}).
+\end{itemize}
+
+\subsection{4. Compare el overhead observado en las capturas Wireshark entre TCP y UDP. ¿Cuál protocolo introduce más cabeceras por mensaje? ¿Cómo influye esto en la eficiencia?}
+\begin{itemize}
+    \item \textbf{Comparación cuantitativa de cabeceras:} 
+    \begin{itemize}
+        \item En la captura UDP ([udp\_pubsub.pcap]), cada datagrama incluye una cabecera fija de únicamente \textbf{8 bytes} (puertos de 16 bits, longitud de 16 bits y checksum de 16 bits). Para el mensaje \texttt{"gol"} (3 bytes), el tamaño a nivel de transporte es de solo 11 bytes.
+        \item En TCP, la cabecera base es de \textbf{20 bytes} (y aumenta hasta 32--60 bytes al incorporar opciones como Timestamps, SACK o Window Scale). Para los mismos 3 bytes de datos, el segmento ocupa al menos 23 bytes (más del doble de sobrecarga relativa).
+    \end{itemize}
+    \item \textbf{Sobrecarga protocolar adicional:} TCP exige paquetes de control que viajan sin carga útil de aplicación: 3 paquetes para el \textit{handshake} de conexión (SYN, SYN-ACK, ACK), paquetes adicionales de confirmación ACK para verificar los mensajes entregados, y 4 paquetes para la terminación (FIN, ACK).
+    \item \textbf{Influencia en la eficiencia:} UDP ofrece una eficiencia de red significativamente superior en consumo de ancho de banda y ratio de datos útiles vs. bytes transmitidos, lo cual es ventajoso para transmisiones masivas y dispositivos con recursos de red limitados.
+\end{itemize}
+
+\subsection{5. Si el marcador de un partido llega desordenado en UDP (por ejemplo, primero se recibe el 2--1 y luego el 1--1), ¿qué efectos tendría en la experiencia del usuario? ¿Cómo podría solucionarse este problema a nivel de aplicación?}
+\begin{itemize}
+    \item \textbf{Efectos en la experiencia de usuario:} Genera desconcierto, pérdida de credibilidad y errores visuales graves. El hincha ve temporalmente un marcador avanzado (2--1) que luego se "rebobina" a un estado anterior (1--1), o lee una secuencia incongruente de eventos (ej. celebración de un gol antes de la falta que lo originó).
+    \item \textbf{Solución a nivel de aplicación:} Se debe enriquecer la carga útil con metadatos de control:
+    \begin{enumerate}
+        \item Incluir un \textbf{número de secuencia monótonamente creciente} por partido (ejemplo: \texttt{PUB:futbol:SEQ=12:gol}).
+        \item Incluir una \textbf{marca de tiempo (\textit{timestamp})} generada por el publicador con precisión de milisegundos.
+        \item En el suscriptor, se implementa una lógica de descarte o búfer de reordenamiento: cualquier mensaje cuyo número de secuencia sea menor o igual al último procesado se ignora inmediatamente, impidiendo la visualización de estados obsoletos.
+    \end{enumerate}
+\end{itemize}
+
+\subsection{6. ¿Cómo cambia el desempeño del sistema cuando aumenta el número de suscriptores interesados en un mismo partido? ¿Qué diferencias se observaron entre TCP y UDP en este aspecto?}
+Cuando un publicador emite una noticia de un partido con $N$ suscriptores, el Broker debe replicar el mensaje individualmente $N$ veces:
+\begin{itemize}
+    \item \textbf{Bajo UDP:} El Broker ejecuta un bucle con $N$ llamadas a \texttt{sendto()} sobre el mismo descriptor de socket. Dado que la operación deposita inmediatamente el datagrama en el buffer de salida de la tarjeta de red sin esperar acuses, el coste computacional es lineal y mínimo. Si $N$ crece a miles, el límite reside en la velocidad de la tarjeta de red para evacuar paquetes.
+    \item \textbf{Bajo TCP:} El Broker debe llamar a \texttt{send()} en $N$ sockets distintos. Cada socket mantiene su propia ventana de congestión y control de flujo. Si unos pocos suscriptores tienen redes lentas o con pérdida de paquetes, sus buffers de transmisión en el Broker se llenan. Si el Broker no utiliza sockets no bloqueantes o múltiples hilos, la lentitud de un suscriptor retrasará el envío hacia los demás, degradando el desempeño global.
+\end{itemize}
+
+\subsection{7. ¿Qué sucede si el broker se detiene inesperadamente? ¿Qué diferencias hay entre TCP y UDP en la capacidad de recuperación de la sesión?}
+\begin{itemize}
+    \item \textbf{En TCP:} La caída del Broker destruye el estado de las conexiones. Al caerse el proceso, el sistema operativo envía paquetes \texttt{RST} a los clientes que intenten transmitir, o los clientes detectan la desconexión mediante \texttt{recv() == 0}. Tanto publicadores como suscriptores quedan en estado de error y no pueden continuar hasta ejecutar un bucle de reconexión explícito que repita el \textit{handshake} completo.
+    \item \textbf{En UDP:} Como no existe noción de sesión a nivel de red, los publicadores y suscriptores \textbf{no se enteran} inmediatamente de la caída del Broker. El publicador continúa ejecutando \texttt{sendto()} al vacío sin recibir errores directos. Sin embargo, si el Broker se levanta nuevamente en el mismo puerto, puede recibir datagramas de inmediato sin necesidad de reconexión; no obstante, el Broker habrá perdido su tabla de suscriptores en memoria, por lo que los suscriptores no recibirán noticias hasta que vuelvan a emitir un datagrama \texttt{SUB:<tema>}.
+\end{itemize}
+
+\subsection{8. ¿Cómo garantizar que todos los suscriptores reciban en el mismo instante las actualizaciones críticas (por ejemplo, un gol)? ¿Qué protocolo facilita mejor esta sincronización y por qué?}
+\begin{itemize}
+    \item \textbf{Dificultad física:} En redes IP con transmisión unicast (un paquete por receptor), garantizar una llegada perfectamente idéntica en tiempo es inviable debido al jitter, las diferencias en los tiempos de ida y vuelta (\textit{RTT}) y el retardo de encolamiento de cada camino de red.
+    \item \textbf{Protocolo que mejor facilita la sincronización:} \textbf{UDP facilita mejor la sincronización}:
+    \begin{itemize}
+        \item \textbf{En Unicast:} En UDP, el Broker despacha los $N$ datagramas en una ráfaga casi simultánea sin detenerse a esperar acuses de recibo. En TCP, cada cliente negocia ventanas distintas y sufre retransmisiones particulares; si un cliente experimenta una pérdida, el mecanismo de control de congestión reduce su tasa y sufre un desfasaje de varios segundos con respecto a los clientes que recibieron los paquetes limpiamente.
+        \item \textbf{En Multicast/Broadcast:} UDP permite de forma nativa la transmisión Multicast (IP clase D), donde el Broker emite un único paquete a la red y los enrutadores lo replican simultáneamente a todos los suscriptores, alcanzando la máxima sincronización posible en hardware. TCP no admite Multicast.
+    \end{itemize}
+\end{itemize}
+
+\subsection{9. Analice el uso de CPU y memoria en el broker cuando maneja múltiples conexiones TCP frente al manejo de datagramas UDP. ¿Qué diferencias encontró?}
+\begin{itemize}
+    \item \textbf{Consumo de Memoria:}
+    \begin{itemize}
+        \item \textbf{TCP:} Exige una huella de memoria en el kernel sustancial. Cada socket conectado mantiene estructuras complejas de control de estado (\texttt{struct sock}, máquina de estados TCP, buffers de recepción y envío \texttt{SO\_RCVBUF} y \texttt{SO\_SNDBUF} que ocupan entre 64 KB y 256 KB por conexión). Gestionar 10.000 clientes TCP puede requerir varios gigabytes de RAM solo en el espacio del kernel.
+        \item \textbf{UDP:} Utiliza una huella de memoria insignificante. El Broker maneja un único socket en el puerto 8080 con un único buffer de entrada/salida. El registro de los clientes se mantiene en el espacio de usuario (un arreglo de estructuras \texttt{struct sockaddr\_in} de apenas 16 bytes por cliente).
+    \end{itemize}
+    \item \textbf{Consumo de CPU:}
+    \begin{itemize}
+        \item \textbf{TCP:} Requiere una carga de CPU considerablemente mayor para procesar el \textit{handshake}, calcular temporizadores de retransmisión (RTO), procesar ACKs acumulativos, ejecutar algoritmos de control de congestión (CUBIC/BBR) y realizar multiplexación de descriptores (cambios de contexto al iterar sobre sockets activos).
+        \item \textbf{UDP:} Muy bajo consumo de CPU. El kernel únicamente añade o remueve la cabecera de 8 bytes y valida un checksum de 16 bits sin calcular temporizadores ni gestionar transiciones de estado.
+    \end{itemize}
+\end{itemize}
+
+\subsection{10. Si tuviera que diseñar un sistema real de transmisión de actualizaciones de partidos de fútbol para millones de usuarios, ¿elegiría TCP, UDP o una combinación de ambos? Justifique con base en lo observado en el laboratorio.}
+Para un sistema de escala masiva con millones de usuarios, la elección óptima es una \textbf{arquitectura híbrida por capas}:
+\begin{enumerate}
+    \item \textbf{Capa de Distribución a Usuarios Finales (Edge a Cliente): TCP (WebSockets / HTTP/2) o QUIC (HTTP/3 sobre UDP):}
+    \begin{itemize}
+        \item Las notificaciones de goles y marcadores deben llegar con confiabilidad garantizada y en orden estricto. La pérdida de una notificación de gol deteriora gravemente la aplicación.
+        \item La gran mayoría de dispositivos móviles operan detrás de cortafuegos residenciales y routers con NAT (\textit{Network Address Translation}). Enviar datagramas UDP no solicitados hacia un cliente suele ser bloqueado por los NAT a menos que se mantengan túneles complejos de perforación de puertos (*hole punching*). TCP y WebSockets sobre el puerto 443 (HTTPS) aseguran compatibilidad universal y cifrado TLS.
+    \end{itemize}
+    \item \textbf{Capa de Ingestión y Comunicación Interna (Estadio al Broker Central): UDP / QUIC:}
+    \begin{itemize}
+        \item Desde el estadio hacia la nube de procesamiento, se utiliza UDP optimizado para minimizar la latencia de ingestión de eventos y telemetría en tiempo real.
+    \end{itemize}
+    \item \textbf{Desacoplamiento mediante Red de Brokers Distribuidos (CDNs):}
+    \begin{itemize}
+        \item Tal como se demostró en el laboratorio, un único Broker central colapsaría ante millones de clientes. Se debe desacoplar la carga mediante una jerarquía de brokers distribuidos (estilo Kafka o RabbitMQ) conectados a servidores perimetrales que atienden grupos de suscriptores localmente.
+    \end{itemize}
+\end{enumerate}
+
+\end{document}

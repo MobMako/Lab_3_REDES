@@ -19,7 +19,7 @@ typedef struct {
 Subscriber subscribers[MAX_SUBSCRIBERS];
 int sub_count = 0;
 
-// Registrar o actualizar la dirección IP:Puerto de un suscriptor
+// Registrar o actualizar la direccion de un suscriptor
 void registrar_suscriptor(struct sockaddr_in *cliaddr, const char *topic) {
   // Evitar duplicados comprobando IP y puerto
   for (int i = 0; i < sub_count; i++) {
@@ -66,7 +66,7 @@ int main() {
   struct sockaddr_in direccion_cliente;
   socklen_t len_cliente = sizeof(direccion_cliente);
 
-  // 1. Crear el socket UDP (SOCK_DGRAM)
+  // Crea el socket UDP (SOCK_DGRAM)
   socket_config = socket(AF_INET, SOCK_DGRAM, 0); // crea socket udp IPv4
  
   // limpia la memoria que podria estar ocupada en la estructura de direccion del servidor
@@ -83,7 +83,7 @@ int main() {
 
  
  
-  // 3. Bucle de recepción de datagramas
+  // recepción de UDP
   while (1) {
     memset(buffer, 0, BUFFER_SIZE);
     ssize_t n = recvfrom(socket_config, buffer, BUFFER_SIZE - 1, 0,
@@ -92,13 +92,11 @@ int main() {
 
     buffer[n] = '\0';
 
-    // Procesar orden de suscripción: "SUB:<tema>"
+    // Procesar mensajes de subsciptores: 
     if (strncmp(buffer, "SUB:", 4) == 0) {
       char *tema = buffer + 4;
       registrar_suscriptor(&direccion_cliente, tema);
-    }
-    // Procesar orden de publicación: "PUB:<tema>:<mensaje>"
-    else if (strncmp(buffer, "PUB:", 4) == 0) {
+    } else if (strncmp(buffer, "PUB:", 4) == 0) {
       char *resto = buffer + 4;
       char *tema = strtok(resto, ":");
       char *contenido = strtok(NULL, "");

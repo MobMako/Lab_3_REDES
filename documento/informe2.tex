@@ -1,0 +1,387 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[left=2.5cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Laboratorio 2 - Redes}
+\lhead{Grupo 2}
+\cfoot{\thepage}
+
+\begin{document}
+
+% Portada
+\begin{titlepage}
+
+        \begin{center}
+        
+        \vspace*{0.5cm}
+        
+        {\Large\textbf{UNIVERSIDAD DE LOS ANDES}}\\[0.2cm]
+        {\large\textbf{DEPARTAMENTO DE INGENIERÍA DE SISTEMAS Y COMPUTACIÓN}}
+        
+        \vfill
+        
+        {\Large\textbf{LABORATORIO 2}}\\[0.8cm]
+        
+        {\Large\textbf{REDES Y SERVICIOS}}
+        
+        \vspace{1.5cm}
+        
+        {\large\textbf{GRUPO 2:}}\\[0.5cm]
+        
+        {\large
+        Luisa María Mora Pérez -- 202410437\\
+        Juan Ángel Aicardy Pacheco -- 202415378
+        }
+        
+        \vfill
+        
+        {\large\textbf{2026-02}}
+        
+        \end{center}
+    
+    \end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introducción}
+El presente documento detalla la configuración y el análisis de tráfico de los diferentes servicios de red requeridos para el Laboratorio 2. Se incluyen las evidencias de despliegue de los servidores Web, FTP, RTMP, VoIP y DNS, junto con su respectivo análisis en Wireshark.
+
+
+\begin{center}
+\textbf{\large Nota Aclaratoria sobre la Topología de Red}
+\end{center}
+\textit{Cabe aclarar que, durante la sustentación, los servidores y clientes se encontraban conectados bajo el mismo Access Point (AP), bajo el cual se probó y garantizó el correcto funcionamiento de la topología. Sin embargo, al momento de realizar las capturas de tráfico y el análisis en Wireshark presentados en este informe, los servidores se tuvieron que distribuir en dos APs diferentes por motivos logísticos del entorno de pruebas. Bajo un AP estaban los servidores WEB, FTP y DNS, bajo el otro AP estaban los servidores VoIP y RTMP.}
+
+\section{Evidencia de Configuración de los Servidores}
+
+\subsection{Servidor Web (Apache2)}
+% JA acá toca reemplaxar \rule por \includegraphics[width=\textwidth]{ruta-imagen
+\begin{figure}[H]
+    \centering
+     \includegraphics[width=0.8\textwidth]{WEB.png}
+    \caption{Evidencia de configuración y acceso al servidor Web (HTTP y HTTPS) utilizando el Nombre y la IP}
+\end{figure}
+
+\subsection{Servidor FTP (ProFTPD)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{FTP (2).png}
+    \caption{Evidencia de carga y descarga de archivos mediante cliente FTP. utilizando el Nombre ftp.labredes24.com}
+\end{figure}
+
+\subsection{Servidor RTMP (Nginx)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{emision.png}
+    \caption{Evidencia de configuración de la emisión (OBS).}
+\end{figure}
+
+Se configura la emisión con respecto al servidor RTMP creado previamente. Se crea la clave de retransmisión y se plantea la URL RTMP dada la IP del servidor y el nombre de la aplicación.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{trnasmision.png}
+    \caption{Transmisión activa desde OBS Studio.}
+\end{figure}
+
+Se inicia la transmisión de captura de pantalla. Se muestra entonces en la figura la transmisión activa hacia:
+\[\text{rtmp://10.53.212.246/applab}\]
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{vlc.png}
+    \caption{Transmisión activa desde OBS Studio.}
+\end{figure}
+
+En la figura, se evidencia VLC reproduciendo en tiempo real el stream rtmp://10.53.212.246
+/applab. Este es recibido desde el servidor Nginx-RTMP, confirmando la recepción del video transmitido por OBS Studio.
+
+
+
+\subsection{Servidor VoIP (Asterisk)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{endpoints.png}
+    \caption{Extensiones SIP en Asterisk.}
+\end{figure}
+
+Salida de pjsip show endpoints en la consola de Asterisk, mostrando las extensiones 1001 y 1002 registradas.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{ingreso.png}
+    \caption{Evidencia de una de las llamadas desde la consola de Asterisk.}
+\end{figure}
+
+Llamada desde 1001 a 1002: Evidencia del proceso de llamada desde 1001 hacia 1002, mediante clientes Zoiper.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.17\linewidth]{llamando1002.jpeg}
+    \caption{Realización de la llamada desde 1001 a 1002}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{recibiendo1001.png}
+    \caption{Recepción de la llamada en 1002}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Captura de pantalla 2026-09-19 a la(s) 2.00.58 p. m..png}
+    \caption{Se contesta la llamada en 1002}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.17\linewidth]{contestada1.jpeg}
+    \caption{Se inicia la llamada}
+    \label{fig:placeholder}
+\end{figure}
+
+Llamada desde 1002 a 1001: Evidencia del proceso de llamada desde 1002 hacia 1001, mediante clientes Zoiper.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{llamando1001.png}
+    \caption{Realización de la llamada desde 1002 a 1001}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.17\linewidth]{desde1002.jpeg}
+    \caption{Se recibe la llamada en 1001}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.17\linewidth]{contestada2.jpeg}
+    \caption{Se contesta la llamada en 1001}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Captura de pantalla 2026-09-19 a la(s) 2.01.21 p. m..png}
+    \caption{Se inicia la llamada}
+    \label{fig:placeholder}
+\end{figure}
+
+
+
+\subsection{Servidor DNS (BIND9)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{dns.png}
+    \caption{Resolución exitosa de nombres usando nslookup desde dispositivo conectado al mismo punto de acceso.}
+    \label{fig:placeholder}
+\end{figure}
+
+\newpage
+\section{Prueba de Conectividad y Análisis de Tráfico}
+
+\subsection{Prueba Ping}
+En la siguiente tabla se resumen las direcciones IP y MAC involucradas en las pruebas de conectividad.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+        \hline
+        \textbf{Servidor Probado} & \textbf{IP Origen (request)} & \textbf{IP Destino (request)} & \textbf{IP Origen (reply)} & \textbf{IP Destino (reply)} & \textbf{MAC Cliente} & \textbf{MAC Servidor} \\ \hline
+        DNS & 192.168.0.209 & 192.168.0.13 & 192.168.0.13 & 192.168.0.209 & 50:fe:0c:03:9e:b7 & 00:0c:29:cd:56:f8 \\ \hline
+        FTP & 192.168.0.209 & 192.168.0.12 & 192.168.0.12 & 192.168.0.209 & 50:fe:0c:03:9e:b7 & 00:0c:29:e7:bc:e6\\ \hline
+    \end{tabular}
+    }
+    \caption{Datos de pruebas Ping extraídos de Wireshark.}
+\end{table}
+En esta parte paso algo rarisimo ya que en el request las MAC de mi hipervisor y de la VM eran diferentes, pero en la reply las MAC de source y destiny eran iguales. La verdad muy raro
+
+\subsection{Análisis de tráfico del Servicio Web}
+    \subsubsection{Ping\_WEB}
+    \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{webbeb.png}
+    \caption{Ping a Nombre del server web}
+    \label{fig:placeholder}
+\end{figure}
+    \
+        \begin{itemize}
+            \item \textbf{Información de la capa de aplicación:} 
+                Los paquetes de Standard queary que va desde el hipervisor hasta el DNS, se hace la consulta a (web.labredes24.com), mientras que en el Standard query response, que va desde el DNS hacia el hipervisor aparece ya la IP traducida.
+            \item \textbf{Protocolo de la capa de transporte:}
+                El protoco DNS utiliza paquetes utiliza UDP para el transporte.  
+            \item \textbf{Puertos utilizados:} 
+                En las Standard queary Aparece Src port como 64109 y Dst port como 53 (puerto de UDP)
+        \end{itemize}
+    \subsubsection{Ping\_WEB\_IP}
+    begin{figure}[H]
+        \centering
+        \includegraphics[width=0.75\linewidth]{sopap.png}
+        \caption{Ping a Web con IP, no hay datos relacionados a el DNS}
+        \label{fig:placeholder}
+    \end{figure}
+        EL registro de paquetes del Ping con IP no tiene llamados al protocolo DNS relacionados con el propio Ping.
+
+    \subsubsection{Tabla de Ping para servicio Web}
+    \begin{table}[H]
+        \centering
+        \resizebox{\textwidth}{!}{
+        \begin{tabular}{|c|c|c|c|c|c|c|}
+            \hline
+            \textbf{Servidor Probado} & \textbf{IP Origen (request)} & \textbf{IP Destino (request)} & \textbf{IP Origen (reply)} & \textbf{IP Destino (reply)} & \textbf{MAC Cliente} & \textbf{MAC Servidor} \\ \hline
+            WEB & 192.168.0.209 & 192.168.0.11 & 192.168.0.11 & 192.168.0.209 & 50:fe:0c:03:9e:b7 & 00:0c:29:90:fd:0f \\ \hline
+        \end{tabular}
+        }
+        \caption{Datos del Ping al servirod WEB.}
+    \end{table}
+
+\subsection{Análisis de tráfico del Servicio FTP}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{image.png}
+    \caption{aptura de Filezilla en la que se pueden apreciar la transferencias satisfactorias de
+Download y Upload}
+    \label{fig:placeholder}
+\end{figure}
+\subsubsection{Download}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{asdad.png}
+    \caption{Captura de Descarga FTP}
+    \label{fig:placeholder}
+\end{figure}
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} Como se detalla en la figura, se evidencia la autenticación del cliente mediante los comandos USER y PASS, confirmada con el código 230 User clienteftp logged in. Igualmente se observan comandos de navegación como CWD y PWD, y la configuración de la transferencia con TYPE A y PASV para iniciar la descarga en modo pasivo.
+    \item \textbf{Protocolo de la capa de transporte:} El protocolo usado es TCP. Esto se evidencia al expandir cualquiera de los paquetes FTP, donde se observa el uso de Transmission Control Protocol.
+    \item \textbf{Puertos utilizados:} Se emplea el puerto 21, el estándar del canal de control de FTP. Esto se evidencia en el campo Src Port de las respuestas del servidor. El canal de datos, usado para la transferencia del archivo, se negocia dinámicamente mediante el comando PASV, asignando un puerto distinto al 21.
+\end{itemize}
+\subsubsection{upload}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{adasdasdsdas.png}
+    \caption{Captura de Subida FTP}
+    \label{fig:placeholder}
+\end{figure}
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} Se observa el mismo proceso de autenticación con USER y PASS, confirmado con 230 User clienteftp logged in, seguido de la navegación al directorio con CWD. A diferencia de la descarga, aquí aparece el comando STOR descargado.txt, que es el que inicia la subida del archivo hacia el servidor.
+    \item \textbf{Protocolo de la capa de transporte:} El protocolo usado es TCP, evidenciado al expandir los paquetes FTP y observar la capa Transmission Control Protocol.
+    \item \textbf{Puertos utilizados:} Se emplea el puerto 21 para el canal de control. Para la subida del archivo se usa el canal de datos en modo pasivo, cuyo puerto es indicado por el servidor en la respuesta 227 Entering Passive Mode, calculado a partir de los dos últimos octetos de dicha respuesta.
+\end{itemize}
+
+
+\subsection{Análisis del protocolo HTTP}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{http.png}
+    \caption{Captura de wireshark para los paquetes con protocolo http}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} Como se ve en la figura, se evidencia la solicitud del cliente con el método GET / para acceder a la página principal del sitio web, respondida por el servidor con el código 200 OK y contenido de tipo text/html. Adicionalmente se observa un GET /favicon.ico, la cual aparentemente hace chrome automaticamente y esta es respondida por el servidor con el código 404 Not Found, ya que no se configuró dicho recurso en el sitio.
+    \item \textbf{Protocolo de la capa de transporte:} El protocolo usado es TCP. Esto se evidencia al expandir el paquete, donde se observa la capa Transmission Control Protocol encapsulando los datos de HTTP.
+    \item \textbf{Puertos utilizados:} Se emplea el puerto 80, el estándar de HTTP. Esto se evidencia en el campo Src Port de las respuestas del servidor (192.168.0.11), mientras que el cliente utiliza el puerto 61118.
+\end{itemize}
+
+\subsection{Análisis YouTube (Navegación)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{youtube.png}
+    \caption{Captura trafico Youtube}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection{Análisis YouTube (Navegación)}
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} Al aplicar el filtro \texttt{tcp.port==443}, no es posible observar el contenido de la comunicación en texto plano, ya que va cifrado mediante TLS. Sin embargo, se identifica el proceso de negociación con mensajes como \textit{Client Hello}, en donde el cliente indica el dominio de destino mediante el campo \textit{SNI} (\texttt{www.youtube.com}), seguido de \textit{Server Hello}, \textit{Change Cipher Spec} y finalmente múltiples paquetes de \textit{Application Data}, que corresponden al contenido cifrado intercambiado entre cliente y servidor una vez establecida la sesión segura (navegación, reproducción de video y comentarios).
+    \item \textbf{Protocolo de la capa de transporte:} El protocolo usado es TCP, evidenciado por el establecimiento previo de la conexión mediante el handshake SYN, SYN-ACK, ACK antes de iniciar la negociación TLS.
+    \item \textbf{Puertos utilizados:} Se emplea el puerto 443 en el servidor de YouTube, mientras que el cliente utiliza un puerto efímero asignado dinámicamente para la sesión.
+\end{itemize}
+
+\subsection{Análisis del HTTPS (Navegación)}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{askljhdaskjdsa.png}
+    \caption{Captura trafico de Navegacion HTTPS}
+    \label{fig:placeholder}
+\end{figure}
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} Al aplicar el filtro \texttt{tcp.port==443}, tampoco es posible observar el contenido en texto plano debido al cifrado TLS. Se identifica el mensaje \textit{Client Hello}, donde el campo \textit{SNI} revela el dominio de destino (\texttt{www.elespectador.com}, \texttt{www.bancolombia.com} y \texttt{www.uniandes.edu.co}), seguido de \textit{Server Hello} y \textit{Change Cipher Spec}, tras lo cual toda la comunicación se transmite como \textit{Application Data} cifrada.
+    \item \textbf{Protocolo de la capa de transporte:} El protocolo usado es TCP, evidenciado en el establecimiento previo de la conexión mediante el handshake SYN, SYN-ACK, ACK antes de la negociación TLS.
+    \item \textbf{Puertos utilizados:} Se emplea el puerto 443, el estándar del servicio web seguro, mientras que el cliente utiliza puertos efímeros asignados dinámicamente (por ejemplo, 51520 o 52486).
+\end{itemize}
+
+
+\subsection{Análisis del protocolo VoIP}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{wirevoip.png}
+    \caption{Tráfico durante la llamada}
+    \label{fig:placeholder}
+\end{figure}
+En esta captura se aplicó el filtro sip para poder visualizar lo referente al protocolo en cuestión. 
+
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} 
+    Como se detalla en la figura, se evidencian los métodos de SIP, como invite (15) en donde se inicia la llamada, ACK (18), y register. Igualmente se identifican múltiples códigos de estado, como 100 trying, 180 ringing, 200 ok, entre otros. FInalmente se observan los identificadores correspondientes a los usuarios configurados en pjsip.conf
+    \item \textbf{Protocolo de la capa de transporte:} 
+    El protocolo usado es UDP. Esto se evidencia en la columna info (por ejemplo en el No. 18), donde los paquetes contienen el parámetro transport=UDP.
+    \item \textbf{Puertos utilizados:} 
+    Se emplea el puerto 5060, el estándar de SIP. Esto se evidencia en el paquete No. 70. Por otro lado se pueden ver los puertos asignados a las solicitudes invite, como lo son el puerto 53966 (No. 24) y el 42417 (No. 71).
+\end{itemize}
+
+\subsection{Análisis del protocolo RTMP}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{image (3).png}
+    \caption{Tráfico durante la transmisión}
+    \label{fig:placeholder}
+\end{figure}
+ En esta captura se aplicó el filtro rtmpt para poder visualizar lo referente al protocolo en cuestión. 
+\begin{itemize}
+    \item \textbf{Información de la capa de aplicación:} 
+    Como se detalla en la figura, se evidencia el handshake inicial (los $C_i$ del cliente y los $S_i$ del servidor). También se evidencia la conexión a la aplicación definida (applab), la confuguración de los parámetros de la transmisión (set peer, set chunk size, ...) y la confirmación del éxito de la conexión. Así se logra ver como empieza a fluir la información Audio Data y Video Data.
+    \item \textbf{Protocolo de la capa de transporte:} 
+    En el despliegue de Transmission Control Protocol se evidencia que el protocolo de la capa de transporte es TCP (1935/TCP)
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\linewidth]{paq444.png}
+        \caption{Despliegue de Transmission Control Protocol para el paquete 444}
+        \label{fig:placeholder}
+    \end{figure}
+
+    \item \textbf{Puertos utilizados:} 
+    En el mismo despliegue se identifica que el puerto source es 65144 y el destino es 1935.
+\end{itemize}
+
+\section{Capturas de Tráfico - Enlace OneDrive}
+Todos los archivos \texttt{.pcap} solicitados se encuentran alojados en la siguiente carpeta compartida de OneDrive:
+
+\vspace{0.5cm}
+\noindent \textbf{Enlace:} \url{https://uniandes-my.sharepoint.com/:f:/r/personal/lm_morap1_uniandes_edu_co/Documents/Redes%20-%20Lab2%20-%20Grupo2?d=w6a708d3b053341188a219bee3bff7e17&csf=1&web=1&e=fEE1N1}
+
+\end{document}

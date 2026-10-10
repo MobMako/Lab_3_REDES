@@ -17,14 +17,14 @@ int main() {
     char mensaje[BUFFER_SIZE];
     char buffer_envio[BUFFER_SIZE + TOPIC_SIZE + 10];
 
-    // 1. Crear el socket UDP (SOCK_DGRAM)
+    // Crear el socket UDP (SOCK_DGRAM)
     socket_config = socket(AF_INET, SOCK_DGRAM, 0);
     if (socket_config < 0) {
         perror("Error al crear el socket");
         exit(EXIT_FAILURE);
     }
 
-    // 2. Configurar la direccion IP y puerto del Broker
+    // Configurar la direccion IP y puerto del Broker
     memset(&direccion_server, 0, sizeof(direccion_server));
     direccion_server.sin_family = AF_INET;
     direccion_server.sin_port = htons(PORT); // Convierte el puerto a formato de red
