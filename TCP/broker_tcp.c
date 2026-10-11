@@ -15,7 +15,7 @@ typedef struct { //se registra el fd del socket sorrespondiente al sub
   char topic[TOPIC_SIZE];
 } Subscriber;
 
-Subscriber subscribers[MAX_SUBSCRIBERS];
+Subscriber subscribers[MAX_SUBSCRIBERS]; //meoria para almacenar los subs
 int sub_count = 0;
 
 //registrar o actualizar un suscriptor por su fd
@@ -55,7 +55,7 @@ void eliminar_suscriptor(int sock_fd) {
 void retransmitir_mensaje(const char *topic, const char *mensaje) {
   int enviados = 0;
   
-  // agrego \n al final para que el suscriptor tambien los reciba separados
+  // agrego \n al final para que el suscriptor tambien los reciba separados, esto es para evitar mensajes pegados
   char buffer_out[BUFFER_SIZE];
   snprintf(buffer_out, sizeof(buffer_out), "%s\n", mensaje);
 
@@ -85,11 +85,11 @@ int main() {
 
     memset(&dirv_server, 0, sizeof(dirv_server));
     dirv_server.sin_family = AF_INET;
-    dirv_server.sin_port = htons(PORT);
+    dirv_server.sin_port = htons(PORT); // htons para compatibilidad como se explica en el informe
     dirv_server.sin_addr.s_addr = INADDR_ANY;
 
-    bind(sock, (struct sockaddr *)&dirv_server, sizeof dirv_server);
-    listen(sock, 10);
+    bind(sock, (struct sockaddr *)&dirv_server, sizeof dirv_server); //hago bind con el sock que ya tenía creado, 
+    listen(sock, 10); //lo pongo a escuchar
 
     printf("[Broker TCP] Servidor iniciado y escuchando en el puerto %d...\n", PORT);
 
@@ -100,7 +100,7 @@ int main() {
 
     while (1) {
         read_fds = master_fds; //hago la copia de mater dado que el select mata los que no tienen info rn el map
-        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) { //select para multiplexación
             perror("[Broker TCP] Error en select");
             break;
         }
@@ -135,16 +135,16 @@ int main() {
                                 char *tema = mensaje_individual + 4; //apunto al tema
                                 registrar_suscriptor(fd, tema); // regis del suscriptor en el subscribers[]
                             } 
-                            else if (strncmp(mensaje_individual, "PUB:", 4) == 0) {
+                            else if (strncmp(mensaje_individual, "PUB:", 4) == 0) { //veo si es pub
                                 char *saveptr_pub;
                                 char *resto = mensaje_individual + 4;
-                                char *tema = strtok_r(resto, ":", &saveptr_pub);
+                                char *tema = strtok_r(resto, ":", &saveptr_pub); //aputnador al tema
                                 char *contenido = strtok_r(NULL, "", &saveptr_pub);
                                 if (tema && contenido) {
-                                    retransmitir_mensaje(tema, contenido);
+                                    retransmitir_mensaje(tema, contenido); //retransmito mensaje
                                 }
                             }
-                            mensaje_individual = strtok_r(NULL, "\n", &saveptr_linea);
+                            mensaje_individual = strtok_r(NULL, "\n", &saveptr_linea);  
                         }
                     }
                 }
