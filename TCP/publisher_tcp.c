@@ -22,12 +22,12 @@ int main() {
         perror("Error al crear el socket");
         exit(EXIT_FAILURE);
     }
-
+    // config de la ip y puerto para comunicacón don el broker
     memset(&direccion_server, 0, sizeof(direccion_server));
     direccion_server.sin_family = AF_INET;
     direccion_server.sin_port = htons(PORT); 
 
-    if (inet_pton(AF_INET, SERVER_IP, &direccion_server.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, SERVER_IP, &direccion_server.sin_addr) <= 0) { //formateo de la ip
         perror("Dirección IP inválida o no soportada");
         close(socket_config);
         exit(EXIT_FAILURE);
@@ -42,7 +42,7 @@ int main() {
 
     printf("Ingrese el tema de las noticias a publicar: ");
     fgets(tema, sizeof(tema), stdin);
-    tema[strcspn(tema, "\n")] = '\0'; 
+    tema[strcspn(tema, "\n")] = '\0'; //elimino salto de línea adicional
 
     while (1) {
         printf("\nIngrese la noticia para '%s' (o 'salir' para terminar): ", tema);
@@ -55,7 +55,7 @@ int main() {
         
         // agrego \n como delimitador por si llegan pegados 
         snprintf(buffer_envio, sizeof(buffer_envio), "PUB:%s:%s\n", tema, mensaje); 
-
+        //send a broker
         ssize_t bytes_enviados = send(socket_config, buffer_envio, strlen(buffer_envio), 0);
 
         if (bytes_enviados < 0) {
@@ -66,7 +66,7 @@ int main() {
         }
     }
 
-    close(socket_config);
+    close(socket_config); //cierro socket
     printf("[Publicador] Sesión finalizada.\n");
     return 0;
 }
